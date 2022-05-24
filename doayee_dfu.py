@@ -45,12 +45,12 @@ class dfuTool(wx.Frame):
         super(dfuTool, self).__init__(parent, title=title)
 
         self.baudrates = ['9600', '57600', '74880', '115200', '230400', '460800', '921600']
-        self.SetSize(800,550)
-        self.SetMinSize(wx.Size(800,500))
+        self.SetSize(800,750)
+        self.SetMinSize(wx.Size(800,600))
         self.Centre()
         self.initUI()
         self.initFlags()
-        print('Doayee ESP32 Firmware Flasher')
+        print('ESP32 Firmware Flasher')
         print('--------------------------------------------')
 
     def initUI(self):
@@ -107,6 +107,22 @@ class dfuTool(wx.Frame):
 
         vbox.Add(self.baudPanel,1, wx.LEFT|wx.RIGHT|wx.EXPAND, 20)
         ################################################################
+        #                   BEGIN PROJECT FILE SELECT GUI                   #
+        ################################################################
+        self.projectPanel = wx.Panel(self.mainPanel)
+        projecthbox = wx.BoxSizer(wx.HORIZONTAL)
+
+        self.projectdesc = wx.StaticText(self.projectPanel,label = "Project file:", style = wx.ALIGN_CENTRE)
+        projecthbox.Add(self.projectdesc,1,wx.ALL|wx.ALIGN_CENTER_VERTICAL,20)
+
+        self.projectText = wx.TextCtrl(parent=self.projectPanel, value="No file selected")
+        projecthbox.Add(self.projectText,5,wx.TOP | wx.BOTTOM |wx.EXPAND,20)
+        self.projectButton = wx.Button(parent=self.projectPanel, label='Browse...')
+        self.projectButton.Bind(wx.EVT_BUTTON, self.on_project_browse_button)        
+        projecthbox.Add(self.projectButton,1,wx.ALL|wx.ALIGN_CENTER_VERTICAL ,20)
+
+        vbox.Add(self.projectPanel,1, wx.LEFT|wx.RIGHT|wx.EXPAND, 20)
+        ################################################################
         #                   BEGIN ERASE BUTTON GUI                     #
         ################################################################
         self.eraseButton = wx.Button(parent=self.mainPanel, label='Erase ESP')
@@ -157,6 +173,25 @@ class dfuTool(wx.Frame):
 
         vbox.Add(self.partitionDFUpanel,1,wx.LEFT|wx.RIGHT|wx.EXPAND, 20)
         ################################################################
+        #                BEGIN SPIFFS DFU FILE GUI                 #
+        ################################################################
+        self.spiffsDFUpanel = wx.Panel(self.mainPanel)
+        self.spiffsDFUpanel.SetBackgroundColour('white')
+        spiffshbox = wx.BoxSizer(wx.HORIZONTAL)
+
+        self.spiffsDFUCheckbox = wx.CheckBox(parent=self.spiffsDFUpanel,label="Flash Spiffs data at 0x290000")
+        self.spiffsDFUCheckbox.Bind(wx.EVT_CHECKBOX,self.on_spiffsFlash_check)
+        spiffshbox.Add(self.spiffsDFUCheckbox,1,wx.ALL|wx.ALIGN_CENTER_VERTICAL,10)
+
+        self.spiffs_pathtext = wx.StaticText(self.spiffsDFUpanel,label = "No File Selected", style = wx.ALIGN_LEFT|wx.ALIGN_CENTER_VERTICAL)
+        spiffshbox.Add(self.spiffs_pathtext,5,wx.ALL|wx.ALIGN_CENTER_VERTICAL,10)
+
+        self.browseButton = wx.Button(parent=self.spiffsDFUpanel, label='Browse...')
+        self.browseButton.Bind(wx.EVT_BUTTON, self.on_spiffs_browse_button)
+        spiffshbox.Add(self.browseButton, 1, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 10)
+
+        vbox.Add(self.spiffsDFUpanel,1,wx.LEFT|wx.RIGHT|wx.EXPAND, 20)
+        ################################################################
         #                BEGIN BOOTLOADER DFU FILE GUI                 #
         ################################################################
         self.bootloaderDFUpanel = wx.Panel(self.mainPanel)
@@ -174,7 +209,7 @@ class dfuTool(wx.Frame):
         self.browseButton.Bind(wx.EVT_BUTTON, self.on_bootloader_browse_button)
         bootloaderhbox.Add(self.browseButton, 1, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 10)
 
-        vbox.Add(self.bootloaderDFUpanel,1,wx.LEFT|wx.RIGHT|wx.EXPAND, 20)
+        vbox.Add(self.bootloaderDFUpanel,1,wx.LEFT|wx.RIGHT|wx.EXPAND, 20)        
         ################################################################
         #                   BEGIN FLASH BUTTON GUI                     #
         ################################################################
@@ -194,8 +229,10 @@ class dfuTool(wx.Frame):
         ################################################################
         self.appDFUpanel.SetSizer(hbox)
         self.partitionDFUpanel.SetSizer(partitionhbox)
+        self.spiffsDFUpanel.SetSizer(spiffshbox)
         self.bootloaderDFUpanel.SetSizer(bootloaderhbox)
         self.serialPanel.SetSizer(serialhbox)
+        self.projectPanel.SetSizer(projecthbox)
         self.baudPanel.SetSizer(baudhbox)
         self.mainPanel.SetSizer(vbox)
 
@@ -208,13 +245,16 @@ class dfuTool(wx.Frame):
         self.ESPTOOLARG_BAUD = self.ESPTOOLARG_BAUD # this default is regrettably loaded as part of the initUI process
         self.ESPTOOLARG_APPPATH = None
         self.ESPTOOLARG_PARTITIONPATH = None
+        self.ESPTOOLARG_SPIFFSPATH = None
         self.ESPTOOLARG_BOOTLOADERPATH = None
         self.ESPTOOLARG_APPFLASH = True
         self.ESPTOOLARG_PARTITIONFLASH = False
+        self.ESPTOOLARG_SPIFFSFLASH = False
         self.ESPTOOLARG_BOOTLOADERFLASH = False
 
         self.APPFILE_SELECTED = False
         self.PARTITIONFILE_SELECTED = False
+        self.SPIFFSFILE_SELECTED = False
         self.BOOTLOADERFILE_SELECTED = False
 
         self.ESPTOOLMODE_ERASE = False
@@ -274,8 +314,23 @@ class dfuTool(wx.Frame):
     def on_partitionFlash_check(self, event):
         self.ESPTOOLARG_PARTITIONFLASH = self.partitionDFUCheckbox.GetValue()
 
+    def on_spiffsFlash_check(self, event):
+        self.ESPTOOLARG_PARTITIONSPIFFS = self.spiffsDFUCheckbox.GetValue()
+
     def on_bootloaderFlash_check(self, event):
         self.ESPTOOLARG_BOOTLOADERFLASH = self.bootloaderDFUCheckbox.GetValue()
+
+    def on_project_browse_button(self, event):
+        with wx.FileDialog(self, "Open", "", "","*.ini", wx.FD_OPEN | wx.FD_FILE_MUST_EXIST) as fileDialog:
+
+            if fileDialog.ShowModal() == wx.ID_CANCEL:
+                return
+
+            path = fileDialog.GetPath()
+            self.PROJFILE_SELECTED = True
+
+        self.projectText.SetValue(os.path.abspath(path))
+        self.ESPTOOLARG_PROJPATH=os.path.abspath(path)        
 
     def on_app_browse_button(self, event):
         with wx.FileDialog(self, "Open", "", "","*.bin", wx.FD_OPEN | wx.FD_FILE_MUST_EXIST) as fileDialog:
@@ -301,6 +356,18 @@ class dfuTool(wx.Frame):
         self.partition_pathtext.SetLabel(os.path.abspath(path))
         self.ESPTOOLARG_PARTITIONPATH=os.path.abspath(path)
 
+    def on_spiffs_browse_button(self, event):
+        with wx.FileDialog(self, "Open", "", "","*.bin", wx.FD_OPEN | wx.FD_FILE_MUST_EXIST) as fileDialog:
+
+            if fileDialog.ShowModal() == wx.ID_CANCEL:
+                return
+
+            path = fileDialog.GetPath()
+            self.SPIFFSFILE_SELECTED = True
+
+        self.spiffs_pathtext.SetLabel(os.path.abspath(path))
+        self.ESPTOOLARG_SPIFFSPATH=os.path.abspath(path)
+
     def on_bootloader_browse_button(self, event):
         with wx.FileDialog(self, "Open", "", "","*.bin", wx.FD_OPEN | wx.FD_FILE_MUST_EXIST) as fileDialog:
 
@@ -324,20 +391,23 @@ class dfuTool(wx.Frame):
         elif self.ESPTOOLARG_PARTITIONFLASH & ~self.PARTITIONFILE_SELECTED:
             print('no partition table selected for flash')
             return
+        elif self.ESPTOOLARG_SPIFFSFLASH & ~self.SPIFFSFILE_SELECTED:
+            print('no spiffs file selected for flash')
+            return        
         elif self.ESPTOOLARG_BOOTLOADERFLASH & ~self.BOOTLOADERFILE_SELECTED:
             print('no bootloader selected for flash')
             return
         else:
             # if the erase_flash has been used but we have not elected to upload all the required files
-            if self.ESPTOOL_ERASE_USED & (~self.ESPTOOLARG_APPFLASH | ~self.ESPTOOLARG_PARTITIONFLASH | ~self.ESPTOOLARG_BOOTLOADERFLASH):
-                dialog = wx.MessageDialog(self.mainPanel, 'DoayeeESP32DFU detected use of \"Erase ESP\", which means you should reflash all files. Are you sure you want to continue? ','Warning',wx.YES_NO|wx.ICON_EXCLAMATION)
+            if self.ESPTOOL_ERASE_USED & (~self.ESPTOOLARG_APPFLASH | ~self.ESPTOOLARG_PARTITIONFLASH | ~self.ESPTOOLARG_SPIFFSFLASH  | ~self.ESPTOOLARG_BOOTLOADERFLASH):
+                dialog = wx.MessageDialog(self.mainPanel, 'ESP32DFU detected use of \"Erase ESP\", which means you should reflash all files. Are you sure you want to continue? ','Warning',wx.YES_NO|wx.ICON_EXCLAMATION)
                 ret = dialog.ShowModal()
 
                 if ret == wx.ID_NO:
                     return
 
             # if we're uploading everything, clear the fact that erase_flash has been used
-            if self.ESPTOOLARG_APPFLASH & self.ESPTOOLARG_PARTITIONFLASH & self.ESPTOOLARG_BOOTLOADERFLASH:
+            if self.ESPTOOLARG_APPFLASH & self.ESPTOOLARG_PARTITIONFLASH & self.ESPTOOLARG_SPIFFSFLASH & self.ESPTOOLARG_BOOTLOADERFLASH:
                 self.ESPTOOL_ERASE_USED = False
 
             self.ESPTOOLMODE_FLASH = True
@@ -375,6 +445,9 @@ class dfuTool(wx.Frame):
             if self.ESPTOOLARG_APPFLASH:
                 cmd.append('0x10000')
                 cmd.append(self.ESPTOOLARG_APPPATH)
+            if self.ESPTOOLARG_SPIFFSFLASH:
+                cmd.append('0x290000')
+                cmd.append(self.ESPTOOLARG_SPIFFSPATH)
             if self.ESPTOOLARG_PARTITIONFLASH:
                 cmd.append('0x8000')
                 cmd.append(self.ESPTOOLARG_PARTITIONPATH)
@@ -407,7 +480,7 @@ class dfuTool(wx.Frame):
 def main():
 
     app = wx.App()
-    window = dfuTool(None, title='Doayee ESP32 DFU Tool')
+    window = dfuTool(None, title='ESP32 DFU Tool')
     window.Show()
 
     app.MainLoop()
