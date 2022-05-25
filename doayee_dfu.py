@@ -4,6 +4,7 @@ import threading
 import serial.tools.list_ports
 import os
 import esptool
+from configparser import ConfigParser
 from serial import SerialException
 from esptool import FatalError
 import argparse
@@ -115,11 +116,30 @@ class dfuTool(wx.Frame):
         self.projectdesc = wx.StaticText(self.projectPanel,label = "Project file:", style = wx.ALIGN_CENTRE)
         projecthbox.Add(self.projectdesc,1,wx.ALL|wx.ALIGN_CENTER_VERTICAL,20)
 
-        self.projectText = wx.TextCtrl(parent=self.projectPanel, value="No file selected")
+        # read project from config file. If error reading, create new file
+        config = ConfigParser() 
+        try:
+            config.read('espdfu.ini')
+            projfile = config.get('files', 'projfile')
+        except:
+            config.add_section('files')
+            config.set('files', 'projfile', '')
+            with open('espdfu.ini', 'w') as configfile:
+                config.write(configfile) 
+            projfile = ''
+
+        if projfile == '':
+            self.projectText = wx.TextCtrl(parent=self.projectPanel, value='No file selected')
+        else:
+            self.projectText = wx.TextCtrl(parent=self.projectPanel, value=projfile)
         projecthbox.Add(self.projectText,5,wx.TOP | wx.BOTTOM |wx.EXPAND,20)
         self.projectButton = wx.Button(parent=self.projectPanel, label='Browse...')
         self.projectButton.Bind(wx.EVT_BUTTON, self.on_project_browse_button)        
         projecthbox.Add(self.projectButton,1,wx.ALL|wx.ALIGN_CENTER_VERTICAL ,20)
+
+        self.projectSaveButton = wx.Button(parent=self.projectPanel, label='Save')
+        self.projectSaveButton.Bind(wx.EVT_BUTTON, self.on_project_save_button)        
+        projecthbox.Add(self.projectSaveButton,1,wx.ALL|wx.ALIGN_CENTER_VERTICAL ,20)
 
         vbox.Add(self.projectPanel,1, wx.LEFT|wx.RIGHT|wx.EXPAND, 20)
         ################################################################
@@ -236,6 +256,10 @@ class dfuTool(wx.Frame):
         self.baudPanel.SetSizer(baudhbox)
         self.mainPanel.SetSizer(vbox)
 
+        # if a project file was loaded, set the options from it
+        if projfile != '':
+            self.load_options()
+
     def initFlags(self):
         '''Initialises the flags used to control the program flow'''
         self.ESPTOOL_BUSY = False
@@ -330,7 +354,26 @@ class dfuTool(wx.Frame):
             self.PROJFILE_SELECTED = True
 
         self.projectText.SetValue(os.path.abspath(path))
-        self.ESPTOOLARG_PROJPATH=os.path.abspath(path)        
+        self.ESPTOOLARG_PROJPATH=os.path.abspath(path) 
+        #remember selected proj file for next time
+        config = ConfigParser() 
+        config.add_section('files')
+        config.set('files', 'projfile', os.path.abspath(path))
+        with open('espdfu.ini', 'w') as configfile:
+            config.write(configfile) 
+        #load settings
+        self.load_options()
+
+
+    def on_project_save_button(self, event):
+        config = ConfigParser() 
+        config.add_section('files')
+        config.set('files', 'binfile', self.app_pathtext.GetLabel())
+        config.set('files', 'partitionfile', self.partition_pathtext.GetLabel())
+        config.set('files', 'bootfile', self.bootloader_pathtext.GetLabel())
+        config.set('files', 'spiffsfile', self.spiffs_pathtext.GetLabel())
+        with open(self.projectText.GetValue(), 'w') as configfile:
+            config.write(configfile) 
 
     def on_app_browse_button(self, event):
         with wx.FileDialog(self, "Open", "", "","*.bin", wx.FD_OPEN | wx.FD_FILE_MUST_EXIST) as fileDialog:
@@ -424,6 +467,17 @@ class dfuTool(wx.Frame):
         for port in ports:
             devices.append(port.device)
         return devices
+
+    def load_options(self):
+        config = ConfigParser() 
+        try:
+            config.read(self.projectText.GetValue())
+            self.app_pathtext.SetLabel(config.get('files', 'binfile'))
+            print("projfile=",config.get('files', 'binfile'))
+            self.APPFILE_SELECTED = True
+            self.ESPTOOLARG_APPPATH=self.app_pathtext.GetLabel()
+        except:
+            wx.MessageDialog(self, 'Could not load project file', caption='Error')
 
     ################################################################
     #                    ESPTOOL FUNCTIONS                         #
