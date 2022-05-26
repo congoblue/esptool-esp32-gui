@@ -66,7 +66,7 @@ class dfuTool(wx.Frame):
         serialhbox = wx.BoxSizer(wx.HORIZONTAL)
 
         self.serialtext = wx.StaticText(self.serialPanel,label = "Serial Port:", style = wx.ALIGN_CENTRE)
-        serialhbox.Add(self.serialtext,0.5,wx.ALL|wx.ALIGN_CENTER_VERTICAL,20)
+        serialhbox.Add(self.serialtext,1,wx.ALL|wx.ALIGN_CENTER_VERTICAL,20)
 
         devices = self.list_serial_devices()
         self.serialChoice = wx.Choice(self.serialPanel, choices=devices)
@@ -89,7 +89,7 @@ class dfuTool(wx.Frame):
         baudhbox = wx.BoxSizer(wx.HORIZONTAL)
 
         self.baudtext = wx.StaticText(self.baudPanel,label = "Baud Rate:", style = wx.ALIGN_CENTRE)
-        baudhbox.Add(self.baudtext,0.5,wx.ALL,20)
+        baudhbox.Add(self.baudtext,1,wx.ALL,20)
 
         # create a button for each baud rate
         for index, baud in enumerate(self.baudrates):
@@ -151,7 +151,7 @@ class dfuTool(wx.Frame):
         self.eraseWarning= wx.StaticText(self.mainPanel,label = "WARNING: Erasing is not mandatory to flash a new app, but if you do, you must reflash ALL 3 files.", style = wx.ALIGN_LEFT)
 
         vbox.Add(self.eraseButton,1, wx.LEFT|wx.RIGHT|wx.EXPAND, 20)
-        vbox.Add(self.eraseWarning,0.1,wx.BOTTOM|wx.LEFT|wx.RIGHT|wx.EXPAND, 20 )
+        vbox.Add(self.eraseWarning,1,wx.BOTTOM|wx.LEFT|wx.RIGHT|wx.EXPAND, 20 )
         ################################################################
         #                   BEGIN APP DFU FILE GUI                     #
         ################################################################
@@ -473,7 +473,6 @@ class dfuTool(wx.Frame):
         try:
             config.read(self.projectText.GetValue())
             self.app_pathtext.SetLabel(config.get('files', 'binfile'))
-            print("projfile=",config.get('files', 'binfile'))
             self.APPFILE_SELECTED = True
             self.ESPTOOLARG_APPPATH=self.app_pathtext.GetLabel()
         except:
