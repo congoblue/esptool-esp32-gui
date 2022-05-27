@@ -9,7 +9,7 @@ A standalone GUI application for ESP32 firmware flashing compatible with Windows
 
 To build a windows exe go to the folder with the .py files and run
 
-'pyinstaller --onefile espdfu.py
+    pyinstaller --onefile espdfu.py
 
 The exe file will be created in a folder "/dist"
 
