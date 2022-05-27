@@ -46,7 +46,7 @@ class dfuTool(wx.Frame):
         super(dfuTool, self).__init__(parent, title=title)
 
         self.baudrates = ['9600', '57600', '74880', '115200', '230400', '460800', '921600']
-        self.SetSize(800,750)
+        self.SetSize(900,750)
         self.SetMinSize(wx.Size(800,600))
         self.Centre()
         self.initFlags()
@@ -162,10 +162,10 @@ class dfuTool(wx.Frame):
         self.appDFUpanel.SetBackgroundColour('white')
         hbox = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.appDFUCheckbox = wx.CheckBox(parent=self.appDFUpanel,label="Application    ")
+        self.appDFUCheckbox = wx.CheckBox(parent=self.appDFUpanel,label="Application",size=(100,5))
         self.appDFUCheckbox.SetValue(True)
         self.appDFUCheckbox.Disable()
-        hbox.Add(self.appDFUCheckbox,2,wx.EXPAND|wx.ALL,10)
+        hbox.Add(self.appDFUCheckbox,0,wx.EXPAND|wx.ALL,10)
 
         self.appAddrText = wx.TextCtrl(parent=self.appDFUpanel, value='0x10000')
         hbox.Add(self.appAddrText,1,wx.EXPAND|wx.ALL,10)
@@ -185,8 +185,8 @@ class dfuTool(wx.Frame):
         self.partitionDFUpanel.SetBackgroundColour('white')
         partitionhbox = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.partitionDFUCheckbox = wx.CheckBox(parent=self.partitionDFUpanel,label="Partition Table")
-        partitionhbox.Add(self.partitionDFUCheckbox,2,wx.EXPAND|wx.ALL,10)
+        self.partitionDFUCheckbox = wx.CheckBox(parent=self.partitionDFUpanel,label="Partition Table",size=(100,5))
+        partitionhbox.Add(self.partitionDFUCheckbox,0,wx.EXPAND|wx.ALL,10)
 
         self.partitionAddrText = wx.TextCtrl(parent=self.partitionDFUpanel, value='0x8000')
         partitionhbox.Add(self.partitionAddrText,1,wx.EXPAND|wx.ALL,10)
@@ -206,7 +206,7 @@ class dfuTool(wx.Frame):
         self.spiffsDFUpanel.SetBackgroundColour('white')
         spiffshbox = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.spiffsDFUCheckbox = wx.CheckBox(parent=self.spiffsDFUpanel,label="Spiffs data    ")
+        self.spiffsDFUCheckbox = wx.CheckBox(parent=self.spiffsDFUpanel,label="Spiffs data",size=(100,5))
         spiffshbox.Add(self.spiffsDFUCheckbox,2,wx.EXPAND|wx.ALL,10)
 
         self.spiffsAddrText = wx.TextCtrl(parent=self.spiffsDFUpanel, value='0x290000')
@@ -227,7 +227,7 @@ class dfuTool(wx.Frame):
         self.bootloaderDFUpanel.SetBackgroundColour('white')
         bootloaderhbox = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.bootloaderDFUCheckbox = wx.CheckBox(parent=self.bootloaderDFUpanel,label="Bootloader     ")
+        self.bootloaderDFUCheckbox = wx.CheckBox(parent=self.bootloaderDFUpanel,label="Bootloader",size=(100,5))
         bootloaderhbox.Add(self.bootloaderDFUCheckbox,2,wx.EXPAND|wx.ALL,10)
 
         self.bootloaderAddrText = wx.TextCtrl(parent=self.bootloaderDFUpanel, value='0x1000')
@@ -244,7 +244,7 @@ class dfuTool(wx.Frame):
         ################################################################
         #                   BEGIN FLASH BUTTON GUI                     #
         ################################################################
-        self.flashButton = wx.Button(parent=self.mainPanel, label='Flash')
+        self.flashButton = wx.Button(parent=self.mainPanel, label='Flash ESP')
         self.flashButton.Bind(wx.EVT_BUTTON, self.on_flash_button)
 
         vbox.Add(self.flashButton,1, wx.LEFT|wx.RIGHT|wx.EXPAND, 20)
@@ -357,14 +357,22 @@ class dfuTool(wx.Frame):
     def on_project_save_button(self, event):
         config = ConfigParser() 
         config.add_section('files')
-        config.set('files', 'binfile', self.app_pathtext.GetLabel())
-        config.set('files', 'partitionfile', self.partition_pathtext.GetLabel())
-        config.set('files', 'bootfile', self.bootloader_pathtext.GetLabel())
-        config.set('files', 'spiffsfile', self.spiffs_pathtext.GetLabel())
+        
+        config.set('files', 'binfile', self.app_pathtext.GetValue())
+        config.set('files', 'partitionfile', self.partition_pathtext.GetValue())
+        config.set('files', 'bootfile', self.bootloader_pathtext.GetValue())
+        config.set('files', 'spiffsfile', self.spiffs_pathtext.GetValue())
+        
         config.set('files', 'binsel', str(self.appDFUCheckbox.GetValue()))
         config.set('files', 'partitionsel', str(self.partitionDFUCheckbox.GetValue()))
         config.set('files', 'bootsel', str(self.bootloaderDFUCheckbox.GetValue()))
         config.set('files', 'spiffssel', str(self.spiffsDFUCheckbox.GetValue()))
+        
+        config.set('files', 'binaddr', str(self.appAddrText.GetValue()))
+        config.set('files', 'partitionaddr', str(self.partitionAddrText.GetValue()))
+        config.set('files', 'bootaddr', str(self.bootloaderAddrText.GetValue()))
+        config.set('files', 'spiffsaddr', str(self.spiffsAddrText.GetValue()))
+        
         config.add_section('comport')
         config.set('comport', 'port', self.ESPTOOLARG_SERIALPORT)
         config.set('comport', 'baudrate', self.ESPTOOLARG_BAUD)
@@ -519,6 +527,15 @@ class dfuTool(wx.Frame):
             else:
                 opt=False
             self.bootloaderDFUCheckbox.SetValue(opt)
+
+            faddr=config.get('files', 'binaddr')
+            self.appAddrText.SetValue(faddr)
+            faddr=config.get('files', 'bootaddr')
+            self.bootloaderAddrText.SetValue(faddr)
+            faddr=config.get('files', 'partitionaddr')
+            self.partitionAddrText.SetValue(faddr)
+            faddr=config.get('files', 'spiffsaddr')
+            self.spiffsAddrText.SetValue(faddr)
 
 
 
