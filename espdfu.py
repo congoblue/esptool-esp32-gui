@@ -49,9 +49,12 @@ class dfuTool(wx.Frame):
         self.SetSize(800,750)
         self.SetMinSize(wx.Size(800,600))
         self.Centre()
-        self.initUI()
         self.initFlags()
-        print('ESP32 Firmware Flasher')
+        self.initUI()
+        self.ESPTOOLARG_SERIALPORT = self.serialChoice.GetString(self.serialChoice.GetSelection())
+        self.ESPTOOLARG_BAUD = self.ESPTOOLARG_BAUD # this default is regrettably loaded as part of the initUI process
+
+        print('ESP32 Firmware Flash tool')
         print('--------------------------------------------')
 
     def initUI(self):
@@ -119,7 +122,7 @@ class dfuTool(wx.Frame):
         # read project from config file. If error reading, create new file
         config = ConfigParser() 
         try:
-            config.read('espdfu.ini')
+            config.read('espdfu.ini') #read the last used filename for the project file
             projfile = config.get('files', 'projfile')
         except:
             config.add_section('files')
@@ -129,9 +132,9 @@ class dfuTool(wx.Frame):
             projfile = ''
 
         if projfile == '':
-            self.projectText = wx.TextCtrl(parent=self.projectPanel, value='No file selected')
+            self.projectText = wx.TextCtrl(parent=self.projectPanel, value='No file selected',style=wx.TE_READONLY)
         else:
-            self.projectText = wx.TextCtrl(parent=self.projectPanel, value=projfile)
+            self.projectText = wx.TextCtrl(parent=self.projectPanel, value=projfile, style=wx.TE_READONLY)
         projecthbox.Add(self.projectText,5,wx.TOP | wx.BOTTOM |wx.EXPAND,20)
         self.projectButton = wx.Button(parent=self.projectPanel, label='Browse...')
         self.projectButton.Bind(wx.EVT_BUTTON, self.on_project_browse_button)        
@@ -159,18 +162,21 @@ class dfuTool(wx.Frame):
         self.appDFUpanel.SetBackgroundColour('white')
         hbox = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.appDFUCheckbox = wx.CheckBox(parent=self.appDFUpanel,label="Flash App at 0x10000                ")
+        self.appDFUCheckbox = wx.CheckBox(parent=self.appDFUpanel,label="Application    ")
         self.appDFUCheckbox.Bind(wx.EVT_CHECKBOX,self.on_appFlash_check)
         self.appDFUCheckbox.SetValue(True)
         self.appDFUCheckbox.Disable()
-        hbox.Add(self.appDFUCheckbox,1,wx.ALL|wx.ALIGN_CENTER_VERTICAL,10)
+        hbox.Add(self.appDFUCheckbox,2,wx.EXPAND|wx.ALL,10)
+
+        self.appAddrText = wx.TextCtrl(parent=self.appDFUpanel, value='0x10000')
+        hbox.Add(self.appAddrText,1,wx.EXPAND|wx.ALL,10)
 
         self.app_pathtext = wx.StaticText(self.appDFUpanel,label = "No File Selected", style = wx.ALIGN_LEFT|wx.ALIGN_CENTER_VERTICAL)
-        hbox.Add(self.app_pathtext,5,wx.ALL|wx.ALIGN_CENTER_VERTICAL,10)
+        hbox.Add(self.app_pathtext,20,wx.EXPAND|wx.ALL,10)
 
         self.browseButton = wx.Button(parent=self.appDFUpanel, label='Browse...')
         self.browseButton.Bind(wx.EVT_BUTTON, self.on_app_browse_button)
-        hbox.Add(self.browseButton, 1, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 10)
+        hbox.Add(self.browseButton, 1, wx.EXPAND|wx.ALL, 10)
 
         vbox.Add(self.appDFUpanel,1,wx.LEFT|wx.RIGHT|wx.EXPAND, 20)
         ################################################################
@@ -180,16 +186,19 @@ class dfuTool(wx.Frame):
         self.partitionDFUpanel.SetBackgroundColour('white')
         partitionhbox = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.partitionDFUCheckbox = wx.CheckBox(parent=self.partitionDFUpanel,label="Flash Partition Table at 0x8000")
+        self.partitionDFUCheckbox = wx.CheckBox(parent=self.partitionDFUpanel,label="Partition Table")
         self.partitionDFUCheckbox.Bind(wx.EVT_CHECKBOX,self.on_partitionFlash_check)
-        partitionhbox.Add(self.partitionDFUCheckbox,1,wx.ALL|wx.ALIGN_CENTER_VERTICAL,10)
+        partitionhbox.Add(self.partitionDFUCheckbox,2,wx.EXPAND|wx.ALL,10)
+
+        self.partitionAddrText = wx.TextCtrl(parent=self.partitionDFUpanel, value='0x8000')
+        partitionhbox.Add(self.partitionAddrText,1,wx.EXPAND|wx.ALL,10)
 
         self.partition_pathtext = wx.StaticText(self.partitionDFUpanel,label = "No File Selected", style = wx.ALIGN_LEFT|wx.ALIGN_CENTER_VERTICAL)
-        partitionhbox.Add(self.partition_pathtext,5,wx.ALL|wx.ALIGN_CENTER_VERTICAL,10)
+        partitionhbox.Add(self.partition_pathtext,20,wx.EXPAND|wx.ALL,10)
 
         self.browseButton = wx.Button(parent=self.partitionDFUpanel, label='Browse...')
         self.browseButton.Bind(wx.EVT_BUTTON, self.on_partition_browse_button)
-        partitionhbox.Add(self.browseButton, 1, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 10)
+        partitionhbox.Add(self.browseButton, 1, wx.EXPAND|wx.ALL, 10)
 
         vbox.Add(self.partitionDFUpanel,1,wx.LEFT|wx.RIGHT|wx.EXPAND, 20)
         ################################################################
@@ -199,16 +208,19 @@ class dfuTool(wx.Frame):
         self.spiffsDFUpanel.SetBackgroundColour('white')
         spiffshbox = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.spiffsDFUCheckbox = wx.CheckBox(parent=self.spiffsDFUpanel,label="Flash Spiffs data at 0x290000")
+        self.spiffsDFUCheckbox = wx.CheckBox(parent=self.spiffsDFUpanel,label="Spiffs data    ")
         self.spiffsDFUCheckbox.Bind(wx.EVT_CHECKBOX,self.on_spiffsFlash_check)
-        spiffshbox.Add(self.spiffsDFUCheckbox,1,wx.ALL|wx.ALIGN_CENTER_VERTICAL,10)
+        spiffshbox.Add(self.spiffsDFUCheckbox,2,wx.EXPAND|wx.ALL,10)
+
+        self.spiffsAddrText = wx.TextCtrl(parent=self.spiffsDFUpanel, value='0x290000')
+        spiffshbox.Add(self.spiffsAddrText,1,wx.EXPAND|wx.ALL,10)
 
         self.spiffs_pathtext = wx.StaticText(self.spiffsDFUpanel,label = "No File Selected", style = wx.ALIGN_LEFT|wx.ALIGN_CENTER_VERTICAL)
-        spiffshbox.Add(self.spiffs_pathtext,5,wx.ALL|wx.ALIGN_CENTER_VERTICAL,10)
+        spiffshbox.Add(self.spiffs_pathtext,20,wx.EXPAND|wx.ALL,10)
 
         self.browseButton = wx.Button(parent=self.spiffsDFUpanel, label='Browse...')
         self.browseButton.Bind(wx.EVT_BUTTON, self.on_spiffs_browse_button)
-        spiffshbox.Add(self.browseButton, 1, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 10)
+        spiffshbox.Add(self.browseButton, 1, wx.EXPAND|wx.ALL, 10)
 
         vbox.Add(self.spiffsDFUpanel,1,wx.LEFT|wx.RIGHT|wx.EXPAND, 20)
         ################################################################
@@ -218,16 +230,19 @@ class dfuTool(wx.Frame):
         self.bootloaderDFUpanel.SetBackgroundColour('white')
         bootloaderhbox = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.bootloaderDFUCheckbox = wx.CheckBox(parent=self.bootloaderDFUpanel,label="Flash Bootloader at 0x1000      ")
+        self.bootloaderDFUCheckbox = wx.CheckBox(parent=self.bootloaderDFUpanel,label="Bootloader     ")
         self.bootloaderDFUCheckbox.Bind(wx.EVT_CHECKBOX,self.on_bootloaderFlash_check)
-        bootloaderhbox.Add(self.bootloaderDFUCheckbox,1,wx.ALL|wx.ALIGN_CENTER_VERTICAL,10)
+        bootloaderhbox.Add(self.bootloaderDFUCheckbox,2,wx.EXPAND|wx.ALL,10)
+
+        self.bootloaderAddrText = wx.TextCtrl(parent=self.bootloaderDFUpanel, value='0x1000')
+        bootloaderhbox.Add(self.bootloaderAddrText,1,wx.EXPAND|wx.ALL,10)
 
         self.bootloader_pathtext = wx.StaticText(self.bootloaderDFUpanel,label = "No File Selected", style = wx.ALIGN_LEFT|wx.ALIGN_CENTER_VERTICAL)
-        bootloaderhbox.Add(self.bootloader_pathtext,5,wx.ALL|wx.ALIGN_CENTER_VERTICAL,10)
+        bootloaderhbox.Add(self.bootloader_pathtext,20,wx.EXPAND|wx.ALL,10)
 
         self.browseButton = wx.Button(parent=self.bootloaderDFUpanel, label='Browse...')
         self.browseButton.Bind(wx.EVT_BUTTON, self.on_bootloader_browse_button)
-        bootloaderhbox.Add(self.browseButton, 1, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 10)
+        bootloaderhbox.Add(self.browseButton, 1, wx.EXPAND|wx.ALL, 10)
 
         vbox.Add(self.bootloaderDFUpanel,1,wx.LEFT|wx.RIGHT|wx.EXPAND, 20)        
         ################################################################
@@ -265,8 +280,6 @@ class dfuTool(wx.Frame):
         self.ESPTOOL_BUSY = False
 
         self.ESPTOOLARG_AUTOSERIAL = False
-        self.ESPTOOLARG_SERIALPORT = self.serialChoice.GetString(self.serialChoice.GetSelection())
-        self.ESPTOOLARG_BAUD = self.ESPTOOLARG_BAUD # this default is regrettably loaded as part of the initUI process
         self.ESPTOOLARG_APPPATH = None
         self.ESPTOOLARG_PARTITIONPATH = None
         self.ESPTOOLARG_SPIFFSPATH = None
@@ -372,6 +385,13 @@ class dfuTool(wx.Frame):
         config.set('files', 'partitionfile', self.partition_pathtext.GetLabel())
         config.set('files', 'bootfile', self.bootloader_pathtext.GetLabel())
         config.set('files', 'spiffsfile', self.spiffs_pathtext.GetLabel())
+        config.set('files', 'binsel', str(self.appDFUCheckbox.GetValue()))
+        config.set('files', 'partitionsel', str(self.partitionDFUCheckbox.GetValue()))
+        config.set('files', 'bootsel', str(self.bootloaderDFUCheckbox.GetValue()))
+        config.set('files', 'spiffssel', str(self.spiffsDFUCheckbox.GetValue()))
+        config.add_section('comport')
+        config.set('comport', 'port', self.ESPTOOLARG_SERIALPORT)
+        config.set('comport', 'baudrate', self.ESPTOOLARG_BAUD)
         with open(self.projectText.GetValue(), 'w') as configfile:
             config.write(configfile) 
 
@@ -468,15 +488,63 @@ class dfuTool(wx.Frame):
             devices.append(port.device)
         return devices
 
+    # load project file and set up the options correctly
     def load_options(self):
         config = ConfigParser() 
         try:
             config.read(self.projectText.GetValue())
-            self.app_pathtext.SetLabel(config.get('files', 'binfile'))
+
+            com=config.get('comport', 'port')
+            self.ESPTOOLARG_SERIALPORT = com
+            n=self.serialChoice.FindString(com)
+            if n == wx.NOT_FOUND:
+                wx.MessageDialog(self, 'COM port set in project file is not found', caption='Error')
+            else:
+                self.serialChoice.SetSelection(n)
+
+            # not sure how to set the baudrate radiobuttons programatically
+            # but we just usually want max speed anyway so just leave it set to default...
+            #com=config.get('comport', 'baudrate')
+            #self.ESPTOOLARG_BAUD = com
+            #self.baudChoice.baudrate = com
+
+            fpath=config.get('files', 'binfile')
+            self.app_pathtext.SetLabel(fpath)
             self.APPFILE_SELECTED = True
-            self.ESPTOOLARG_APPPATH=self.app_pathtext.GetLabel()
+            self.ESPTOOLARG_APPPATH = fpath
+            
+            fpath=config.get('files', 'partitionfile')
+            self.partition_pathtext.SetLabel(fpath)
+            self.PARTITIONFILE_SELECTED = True
+            self.ESPTOOLARG_APPPATH = fpath
+
+            fpath=config.get('files', 'spiffsfile')
+            self.spiffs_pathtext.SetLabel(fpath)
+            self.SPIFFSFILE_SELECTED = True
+            self.ESPTOOLARG_SPIFFSPATH = fpath
+
+            fpath=config.get('files', 'bootfile')
+            self.bootloader_pathtext.SetLabel(fpath)
+            self.BOOTLOADERFILE_SELECTED = True
+            self.ESPTOOLARG_BOOTLOADERPATH = fpath
+
+            if config.get('files', 'binsel') == "True":
+                opt=True
+            else:
+                opt=False
+            self.appDFUCheckbox.SetValue(opt)
+            self.ESPTOOLARG_APPFLASH = opt
+
+            if config.get('files', 'partitionsel') == "True":
+                opt=True
+            else:
+                opt=False
+            self.partitionDFUCheckbox.SetValue(opt)
+            self.ESPTOOLPARTITION_APPFLASH = opt
+
+
         except:
-            wx.MessageDialog(self, 'Could not load project file', caption='Error')
+            wx.MessageDialog(self, 'Error loading project file', caption='Error')
 
     ################################################################
     #                    ESPTOOL FUNCTIONS                         #
@@ -533,7 +601,7 @@ class dfuTool(wx.Frame):
 def main():
 
     app = wx.App()
-    window = dfuTool(None, title='ESP32 DFU Tool')
+    window = dfuTool(None, title='ESP32 Flash Programming Tool')
     window.Show()
 
     app.MainLoop()
