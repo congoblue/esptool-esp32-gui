@@ -132,9 +132,9 @@ class dfuTool(wx.Frame):
             projfile = ''
 
         if projfile == '':
-            self.projectText = wx.TextCtrl(parent=self.projectPanel, value='No file selected',style=wx.TE_READONLY)
+            self.projectText = wx.TextCtrl(parent=self.projectPanel, value='No file selected')
         else:
-            self.projectText = wx.TextCtrl(parent=self.projectPanel, value=projfile, style=wx.TE_READONLY)
+            self.projectText = wx.TextCtrl(parent=self.projectPanel, value=projfile)
         projecthbox.Add(self.projectText,20,wx.TOP | wx.BOTTOM |wx.EXPAND,20)
         self.projectButton = wx.Button(parent=self.projectPanel, label='Browse...')
         self.projectButton.Bind(wx.EVT_BUTTON, self.on_project_browse_button)        
