@@ -51,7 +51,6 @@ class dfuTool(wx.Frame):
         self.Centre()
         self.initFlags()
         self.initUI()
-        self.ESPTOOLARG_SERIALPORT = self.serialChoice.GetString(self.serialChoice.GetSelection())
         self.ESPTOOLARG_BAUD = self.ESPTOOLARG_BAUD # this default is regrettably loaded as part of the initUI process
 
         print('ESP32 Firmware Flash tool')
@@ -302,12 +301,10 @@ class dfuTool(wx.Frame):
         self.serialChoice.Clear()
         for device in devices:
             self.serialChoice.Append(device)
-        self.ESPTOOLARG_SERIALPORT = self.serialChoice.GetString(self.serialChoice.GetSelection())
         print('serial choices updated')
 
     def on_serial_list_select(self,event):
         port = self.serialChoice.GetString(self.serialChoice.GetSelection())
-        self.ESPTOOLARG_SERIALPORT = self.serialChoice.GetString(self.serialChoice.GetSelection())
         print('you chose '+port)
 
     def on_serial_autodetect_check(self,event):
@@ -475,7 +472,6 @@ class dfuTool(wx.Frame):
             config.read(self.projectText.GetValue())
 
             com=config.get('comport', 'port')
-            self.ESPTOOLARG_SERIALPORT = com
             n=self.serialChoice.FindString(com)
             if n == wx.NOT_FOUND:
                 wx.MessageDialog(self, 'COM port set in project file is not found', caption='Error')
@@ -550,7 +546,7 @@ class dfuTool(wx.Frame):
         cmd = ['--baud',self.ESPTOOLARG_BAUD]
 
         if self.ESPTOOLARG_AUTOSERIAL == False:
-            cmd = cmd + ['--port',self.ESPTOOLARG_SERIALPORT]
+            cmd = cmd + ['--port',self.serialChoice.GetString(self.serialChoice.GetSelection())]
 
         if self.ESPTOOLMODE_ERASE:
             cmd.append('erase_flash')

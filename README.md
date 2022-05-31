@@ -7,7 +7,13 @@ A standalone GUI application for ESP32 firmware flashing compatible with Windows
 
 ## Windows exe
 
-To build a windows exe go to the folder with the .py files and run
+You will need to have Python 3 installed to run the app, also the wxpython library. To make a standalone exe:
+
+Install pyinstaller if you don't already have it
+
+    pip install pyinstaller
+
+To build exe go to the folder with the .py files and run
 
     pyinstaller --onefile espdfu.py
 
