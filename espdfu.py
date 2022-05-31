@@ -371,7 +371,7 @@ class dfuTool(wx.Frame):
         config.set('files', 'spiffsaddr', str(self.spiffsAddrText.GetValue()))
         
         config.add_section('comport')
-        config.set('comport', 'port', self.ESPTOOLARG_SERIALPORT)
+        config.set('comport', 'port', self.serialChoice.GetString(self.serialChoice.GetSelection()))
         config.set('comport', 'baudrate', self.ESPTOOLARG_BAUD)
         with open(self.projectText.GetValue(), 'w') as configfile:
             config.write(configfile) 
